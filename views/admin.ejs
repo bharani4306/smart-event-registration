@@ -1,0 +1,16 @@
+<h1>📋 Registered Participants</h1>
+<a href="/logout">🚪 Logout</a>
+<table border="1" cellpadding="10">
+  <tr>
+    <th>Name</th><th>Email</th><th>Phone</th><th>Event Date</th><th>Ticket ID</th>
+  </tr>
+  <% regs.forEach(r => { %>
+    <tr>
+      <td><%= r.name %></td>
+      <td><%= r.email %></td>
+      <td><%= r.phone %></td>
+      <td><%= r.eventDate %></td>
+      <td><%= r.ticketId %></td>
+    </tr>
+  <% }) %>
+</table>
