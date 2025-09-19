@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Event Payment</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9fafc; }
+    .container {
+      max-width: 500px; margin: 50px auto; padding: 30px;
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    h2 { text-align: center; margin-bottom: 20px; }
+    label { display: block; margin: 12px 0 5px; font-weight: bold; }
+    input, select {
+      width: 100%; padding: 10px; margin-bottom: 15px;
+      border: 1px solid #ccc; border-radius: 6px;
+    }
+    button {
+      width: 100%; padding: 12px; background: green;
+      border: none; border-radius: 6px; color: white;
+      font-size: 16px; cursor: pointer;
+    }
+    button:hover { background: darkgreen; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Complete Your Payment</h2>
+    <form action="/pay" method="POST">
+      <input type="hidden" name="ticketId" value="<%= ticketId %>" />
+
+      <label for="method">Payment Method</label>
+      <select id="method" name="method" required>
+        <option value="">--Select--</option>
+        <option value="debit">Debit Card</option>
+        <option value="netbanking">Net Banking</option>
+      </select>
+
+      <label for="card">Card / Account Number</label>
+      <input type="text" id="card" name="card" required />
+
+      <label for="amount">Amount</label>
+      <input type="text" id="amount" name="amount" value="500" readonly />
+
+      <button type="submit">Pay ₹500</button>
+    </form>
+  </div>
+</body>
+</html>
