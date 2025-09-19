@@ -22,71 +22,85 @@ app.use(
   })
 );
 
-// File path for storage
+// JSON file to store registrations
 const DATA_FILE = path.join(__dirname, "registrations.json");
 
-// Utility: Load registrations
+// Load registrations
 function loadRegistrations() {
   if (!fs.existsSync(DATA_FILE)) return [];
   return JSON.parse(fs.readFileSync(DATA_FILE));
 }
 
-// Utility: Save registrations
+// Save registrations
 function saveRegistrations(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// ✅ Registration Route
-app.post("/register", async (req, res) => {
+// ✅ Registration Route → redirect to payment
+app.post("/register", (req, res) => {
   const { name, email, phone, eventDate } = req.body;
   const ticketId = "TICKET-" + Date.now();
 
-  // Save data to JSON
   const registrations = loadRegistrations();
-  registrations.push({ name, email, phone, eventDate, ticketId });
+  registrations.push({ name, email, phone, eventDate, ticketId, paid: false });
   saveRegistrations(registrations);
 
-  // Generate QR code
+  res.redirect(`/payment?ticketId=${ticketId}`);
+});
+
+// ✅ Payment Page
+app.get("/payment", (req, res) => {
+  const { ticketId } = req.query;
+  res.render("payment", { ticketId });
+});
+
+// ✅ Payment Processing
+app.post("/pay", async (req, res) => {
+  const { ticketId, method, card } = req.body;
+
+  const registrations = loadRegistrations();
+  const reg = registrations.find((r) => r.ticketId === ticketId);
+
+  if (!reg) return res.send("❌ Ticket not found");
+
+  reg.paid = true;
+  saveRegistrations(registrations);
+
+  // Generate QR
   const qrCodeData = await QRCode.toDataURL(ticketId);
 
-  // Send email confirmation
+  // Send ticket email
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER, // from .env
-        pass: process.env.EMAIL_PASS, // Gmail App Password
-      },
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
     });
 
     await transporter.sendMail({
       from: `IBM Events <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Your Event Ticket",
-      html: `<h2>Hello ${name},</h2>
-             <p>Thanks for registering!</p>
-             <p>Your Ticket ID: <b>${ticketId}</b></p>
+      to: reg.email,
+      subject: "Your Event Ticket (Payment Successful)",
+      html: `<h2>Hello ${reg.name},</h2>
+             <p>Your payment of ₹500 is successful.</p>
+             <p>Ticket ID: <b>${ticketId}</b></p>
              <img src="${qrCodeData}" />`,
     });
   } catch (err) {
     console.error("❌ Email sending failed:", err.message);
   }
 
-  // Show ticket page
-  res.render("ticket", { name, email, phone, eventDate, ticketId, qrCodeData });
+  res.render("ticket", { ...reg, qrCodeData });
 });
 
-// ✅ Login Routes
+// ✅ Login Page
 app.get("/login", (req, res) => {
   res.render("login", { error: null });
 });
 
+// ✅ Login Handling
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
-  if (
-    username === process.env.ADMIN_USER &&
-    password === process.env.ADMIN_PASS
-  ) {
+  if (username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
     req.session.isAdmin = true;
     return res.redirect("/admin");
   }
@@ -95,20 +109,17 @@ app.post("/login", (req, res) => {
 
 // ✅ Admin Dashboard
 app.get("/admin", (req, res) => {
-  if (!req.session.isAdmin) {
-    return res.redirect("/login");
-  }
+  if (!req.session.isAdmin) return res.redirect("/login");
   const regs = loadRegistrations();
   res.render("admin", { regs });
 });
 
 // ✅ Logout
 app.get("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.redirect("/login");
-  });
+  req.session.destroy(() => res.redirect("/login"));
 });
 
+// ✅ Start server
 app.listen(PORT, () =>
   console.log(`✅ Server running at http://localhost:${PORT}`)
 );
